@@ -75,24 +75,22 @@
       const targetRect =
         target.getBoundingClientRect();
 
-      const lastChild =
-        target.lastElementChild;
+      const tryOnCard =
+        target.querySelector(
+          ".result-tryon-card",
+        );
 
-      const lastChildRect =
-        lastChild?.getBoundingClientRect();
-
-      /*
-      * 마지막 콘텐츠 끝부분 + 하단 패딩까지만 저장
-      */
-      const contentHeight =
-        lastChildRect
-          ? lastChildRect.bottom -
-            targetRect.top +
-            54
-          : targetRect.height;
+      const tryOnRect =
+        tryOnCard?.getBoundingClientRect();
 
       const height =
-        Math.ceil(contentHeight);
+        Math.ceil(
+          tryOnRect
+            ? tryOnRect.bottom -
+              targetRect.top +
+              54
+            : target.scrollHeight,
+        );
 
       /*
       * 원본에서 복사된 긴 높이를 실제 콘텐츠 높이로 덮어씀
