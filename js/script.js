@@ -990,25 +990,27 @@ document.querySelector('#restart-test')?.addEventListener('click', () => {
   showPage('quiz');
 });
 
-document.querySelector('.save-button')?.addEventListener('click', () => showToast('QR 결과 저장 기능을 연결할 자리예요.'));
-document.querySelectorAll('.try-button').forEach((button) => button.addEventListener('click', () => showToast('가상 착용 카메라 기능을 연결할 자리예요.')));
-document.querySelectorAll('.detail-button').forEach((button) => button.addEventListener('click', () => showToast('제품 상세 페이지를 연결할 자리예요.')));
+document.querySelector('.save-button')?.addEventListener(
+  'click',
+  () => showToast('QR 결과 저장 기능을 연결할 자리예요.')
+);
 
-const initialPage = location.hash.replace('#', '');
-
-if (initialPage === 'intro') {
-  openIntroPage('main');
-} else {
-  showPage(
-    ['home', 'quiz', 'iris', 'result'].includes(initialPage)
-      ? initialPage
-      : 'home'
+document.querySelectorAll('.try-button').forEach((button) => {
+  button.addEventListener(
+    'click',
+    () => showToast('가상 착용 카메라 기능을 연결할 자리예요.')
   );
-}
+});
 
-const introButtons = document.querySelectorAll('[data-intro]');
+document.querySelectorAll('.detail-button').forEach((button) => {
+  button.addEventListener(
+    'click',
+    () => showToast('제품 상세 페이지를 연결할 자리예요.')
+  );
+});
 
-const introRoot = document.querySelector('#intro-root');
+const introRoot = 
+  document.querySelector('#intro-root');
 
 function openIntroPage(type) {
   const content = introContents[type];
@@ -1126,8 +1128,31 @@ function openIntroPage(type) {
   });
 }
 
-introButtons.forEach((button) => {
-  button.addEventListener('click', () => {
-    openIntroPage(button.dataset.intro);
-  });
+document.addEventListener('click', (event) => {
+  const introButton =
+    event.target.closest('[data-intro]');
+
+  if (!introButton) {
+    return;
+  }
+
+  event.preventDefault();
+
+  openIntroPage(
+    introButton.dataset.intro || 'main'
+  );
 });
+
+const initialPage =
+  location.hash.replace('#', '');
+
+if (initialPage === 'intro') {
+  openIntroPage('main');
+} else {
+  showPage(
+    ['home', 'quiz', 'iris', 'result']
+      .includes(initialPage)
+      ? initialPage
+      : 'home'
+  );
+}
