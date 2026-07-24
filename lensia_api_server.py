@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 
+import traceback
 import cgi
 import json
 import mimetypes
@@ -50,7 +51,18 @@ class Handler(BaseHTTPRequestHandler):
         try:
             self.send_json({"ok": True, "result": add_urls(self.handle_analyze())})
         except Exception as exc:
-            self.send_json({"ok": False, "error": str(exc)}, 400)
+            print("\n=== API ANALYZE ERROR ===")
+            print(str(exc))
+            traceback.print_exc()
+            print("=========================\n")
+
+            self.send_json(
+                {
+                    "ok": False,
+                    "error": str(exc),
+                },
+                400,
+            )
 
     def handle_analyze(self) -> dict:
         form = cgi.FieldStorage(
