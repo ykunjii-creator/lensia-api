@@ -340,19 +340,73 @@
     return selectedImageFile || window.lensiaSelectedImageFile || null;
   }
 
+  function parseAiAxis(
+    value,
+    leftWord,
+    rightWord,
+    leftCode,
+    rightCode
+  ) {
+    const normalized = String(value || "")
+      .trim()
+      .toLowerCase();
+
+    if (normalized.startsWith(leftWord)) {
+      return leftCode;
+    }
+
+    if (normalized.startsWith(rightWord)) {
+      return rightCode;
+    }
+
+    /*
+    * AI가 해당 축을 반환하지 않았다면
+    * 임의의 기본값을 넣지 않습니다.
+    */
+    return "?";
+  }
+
   function codeFromAiResult(result) {
-    const hint = result?.analysis?.lpti_hint || {};
-    const warmCool = hint.warm_cool || hint.color_temperature || "";
-    const everydayUnique = hint.everyday_unique || hint.style || "";
-    const puppyKitty = hint.puppy_kitty || hint.eye_impression || "";
-    const largeMedium = hint.large_medium || hint.size || "";
+    const hint =
+      result?.analysis?.lpti_hint || {};
 
-    const color = String(warmCool).toLowerCase().startsWith("cool") ? "C" : "W";
-    const style = String(everydayUnique).toLowerCase().startsWith("unique") ? "U" : "E";
-    const impression = String(puppyKitty).toLowerCase().startsWith("kitty") ? "K" : "P";
-    const size = String(largeMedium).toLowerCase().startsWith("medium") ? "M" : "L";
+    const wc = parseAiAxis(
+      hint.warm_cool ||
+        hint.color_temperature,
+      "warm",
+      "cool",
+      "W",
+      "C"
+    );
 
-    return `${color}${style}${impression}${size}`;
+    const eu = parseAiAxis(
+      hint.everyday_unique ||
+        hint.style,
+      "everyday",
+      "unique",
+      "E",
+      "U"
+    );
+
+    const pk = parseAiAxis(
+      hint.puppy_kitty ||
+        hint.eye_impression,
+      "puppy",
+      "kitty",
+      "P",
+      "K"
+    );
+
+    const lm = parseAiAxis(
+      hint.large_medium ||
+        hint.size,
+      "large",
+      "medium",
+      "L",
+      "M"
+    );
+
+    return `${wc}${eu}${pk}${lm}`;
   }
 
   function hsvFromFeature(feature) {
@@ -389,13 +443,16 @@
 
   function storeTypeOverride(result) {
     const code = codeFromAiResult(result);
+
+    // AI 결과는 설문 보완용으로만 저장
     window.lensiaAiTypeCode = code;
 
-    if (!window.lensiaOriginalGetTypeCode && typeof window.getTypeCode === "function") {
-      window.lensiaOriginalGetTypeCode = window.getTypeCode;
-    }
+    sessionStorage.setItem(
+      "lensiaAiTypeCode",
+      code
+    );
 
-    window.getTypeCode = () => code;
+    // getTypeCode()는 덮어쓰지 않음
   }
 
   function storeResults(result, lensColor = selectedLensColor) {

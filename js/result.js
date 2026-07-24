@@ -543,25 +543,63 @@ function safeGetTypeCode() {
 function safeGetSpectrumScores(code) {
   try {
     if (typeof calculateScores === "function") {
-      const scores = calculateScores();
+      /*
+       * AI 보정 점수가 포함된 최종 점수 사용
+       * 함수가 없으면 기존 설문 점수로 대체
+       */
+      const scores =
+        typeof calculateFinalScores === "function"
+          ? calculateFinalScores()
+          : calculateScores();
 
-      const toPercent = (leftScore, rightScore) => {
+      const toPercent = (
+        leftScore,
+        rightScore,
+        finalType,
+        rightType
+      ) => {
         const left = Number(leftScore) || 0;
         const right = Number(rightScore) || 0;
         const total = left + right;
 
-        if (total === 0) {
-          return 50;
+        // 동점 또는 모두 0점일 때는 최종 보완 결과 표시
+        if (total === 0 || left === right) {
+          return finalType === rightType
+            ? 73
+            : 27;
         }
 
         return (right / total) * 100;
       };
 
       return {
-        wc: toPercent(scores.W, scores.C),
-        eu: toPercent(scores.E, scores.U),
-        pk: toPercent(scores.P, scores.K),
-        lm: toPercent(scores.L, scores.M),
+        wc: toPercent(
+          scores.W,
+          scores.C,
+          code[0],
+          "C"
+        ),
+
+        eu: toPercent(
+          scores.E,
+          scores.U,
+          code[1],
+          "U"
+        ),
+
+        pk: toPercent(
+          scores.P,
+          scores.K,
+          code[2],
+          "K"
+        ),
+
+        lm: toPercent(
+          scores.L,
+          scores.M,
+          code[3],
+          "M"
+        ),
       };
     }
   } catch (error) {

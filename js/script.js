@@ -826,29 +826,137 @@ function calculateScores() {
   return scores;
 }
 
-function pickType(scores, leftType, rightType, defaultType) {
-  if (scores[leftType] > scores[rightType]) return leftType;
-  if (scores[rightType] > scores[leftType]) return rightType;
+function pickType(
+  scores,
+  leftType,
+  rightType,
+  defaultType,
+  aiType
+) {
+  if (scores[leftType] > scores[rightType]) {
+    return leftType;
+  }
+
+  if (scores[rightType] > scores[leftType]) {
+    return rightType;
+  }
+
+  // 설문 점수가 동점일 때만 이미지 분석 사용
+  if (
+    aiType === leftType ||
+    aiType === rightType
+  ) {
+    return aiType;
+  }
+
   return defaultType;
 }
 
+function getSavedAiTypeCode() {
+  const savedCode =
+    sessionStorage.getItem("lensiaAiTypeCode") ||
+    window.lensiaAiTypeCode ||
+    "";
+
+  const normalizedCode = String(savedCode)
+    .replaceAll("-", "")
+    .toUpperCase();
+
+  return normalizedCode.length === 4
+    ? normalizedCode
+    : "";
+}
+
+function calculateFinalScores() {
+  const surveyScores = calculateScores();
+  const aiCode = getSavedAiTypeCode();
+
+  const finalScores = {
+    ...surveyScores,
+  };
+
+  const aiWC = aiCode[0];
+  const aiPK = aiCode[2];
+
+  /*
+   * W/C와 P/K에는 AI 분석 결과를 2점 보정으로 반영
+   */
+  if (aiWC === "W" || aiWC === "C") {
+    finalScores[aiWC] += 2;
+  }
+
+  if (aiPK === "P" || aiPK === "K") {
+    finalScores[aiPK] += 2;
+  }
+
+  /*
+   * E/U와 L/M은 설문 점수를 그대로 유지
+   */
+  return finalScores;
+}
+
 function getTypeCode() {
-  const answeredCount = Object.keys(answers).length;
+  const answeredCount =
+    Object.keys(answers).length;
 
   if (answeredCount === 0) {
     return "WEPL";
   }
 
-  const scores = calculateScores();
+  const surveyScores = calculateScores();
+  const finalScores = calculateFinalScores();
+  const aiCode = getSavedAiTypeCode();
 
-  const wc = pickType(scores, "W", "C", "W");
-  const eu = pickType(scores, "E", "U", "E");
-  const pk = pickType(scores, "P", "K", "P");
-  const lm = pickType(scores, "L", "M", "M");
+  const aiWC = aiCode[0];
+  const aiPK = aiCode[2];
+  const aiLM = aiCode[3];
+
+  /*
+   * W/C: 설문 + AI
+   */
+  const wc = pickType(
+    finalScores,
+    "W",
+    "C",
+    "W",
+    aiWC
+  );
+
+  /*
+   * E/U: 설문만
+   */
+  const eu = pickType(
+    surveyScores,
+    "E",
+    "U",
+    "E",
+    ""
+  );
+
+  /*
+   * P/K: 설문 + AI
+   */
+  const pk = pickType(
+    finalScores,
+    "P",
+    "K",
+    "P",
+    aiPK
+  );
+
+  /*
+   * L/M: 설문 우선, 동점일 때 AI
+   */
+  const lm = pickType(
+    surveyScores,
+    "L",
+    "M",
+    "M",
+    aiLM
+  );
 
   return `${wc}${eu}${pk}${lm}`;
 }
-
 pageButtons.forEach((button) => {
   button.addEventListener('click', () => showPage(button.dataset.page));
 });
