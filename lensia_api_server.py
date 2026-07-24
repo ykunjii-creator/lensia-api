@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+
 import cgi
 import json
 import mimetypes
@@ -15,8 +17,9 @@ ROOT = Path(__file__).resolve().parent
 UPLOAD_DIR = ROOT / "web_uploads"
 OUTPUT_DIR = ROOT / "web_output"
 LENS_ASSET_DIR = ROOT / "assets" / "lenses-api"
-HOST = "127.0.0.1"
-PORT = 8000
+
+HOST = "0.0.0.0"
+PORT = int(os.environ.get("PORT", "8000"))
 
 
 def file_url(path: str | Path) -> str:
