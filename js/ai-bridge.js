@@ -104,6 +104,25 @@
     return `${url}${url.includes("?") ? "&" : "?"}t=${Date.now()}`;
   }
 
+  function fileToDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.addEventListener("load", () => {
+        resolve(String(reader.result || ""));
+      });
+
+      reader.addEventListener("error", () => {
+        reject(
+          reader.error ||
+            new Error("이미지를 읽지 못했습니다.")
+        );
+      });
+
+      reader.readAsDataURL(file);
+    });
+  }
+
   function dataUrlToFile(dataUrl, fileName) {
     const parts = dataUrl.split(",");
     const mimeMatch = parts[0].match(/:(.*?);/);
@@ -402,43 +421,73 @@
   }
 
   function updateImages(result) {
-    const previewUrl =
-      result?.artifacts?.tryon_preview_url ||
-      result?.artifacts?.annotated_image_url ||
-      "";
+    const analysisImageUrl =
+      sessionStorage.getItem(
+        "lensiaIrisImageDataUrl"
+      ) || "";
 
-    if (!previewUrl) {
-      return;
-    }
+    const tryOnImageUrl =
+      result?.artifacts?.tryon_preview_url || "";
 
-    const resultIrisImage = qs("#result-iris-image");
-    const resultIrisPlaceholder = qs("#result-iris-placeholder");
-    const resultIrisPreview = qs("#result-iris-preview");
-    const ringLabel = qs(".result-iris-ring b");
-    const tryOnImage = qs("#tryon-result-image");
-    const tryOnPlaceholder = qs("#tryon-result-placeholder");
+    const resultIrisImage = qs(
+      "#result-iris-image"
+    );
 
-    if (resultIrisImage) {
-      resultIrisImage.src = cacheBust(previewUrl);
+    const resultIrisPlaceholder = qs(
+      "#result-iris-placeholder"
+    );
+
+    const resultIrisPreview = qs(
+      "#result-iris-preview"
+    );
+
+    const ringLabel = qs(
+      ".result-iris-ring b"
+    );
+
+    const tryOnImage = qs(
+      "#tryon-result-image"
+    );
+
+    const tryOnPlaceholder = qs(
+      "#tryon-result-placeholder"
+    );
+
+    // 상단 홍채 분석 영역: 사용자가 첨부한 원본 이미지
+    if (resultIrisImage && analysisImageUrl) {
+      resultIrisImage.src = analysisImageUrl;
       resultIrisImage.hidden = false;
     }
 
-    if (resultIrisPlaceholder) {
+    if (
+      resultIrisPlaceholder &&
+      analysisImageUrl
+    ) {
       resultIrisPlaceholder.hidden = true;
     }
 
-    resultIrisPreview?.classList.remove("is-empty");
+    if (analysisImageUrl) {
+      resultIrisPreview?.classList.remove(
+        "is-empty"
+      );
+    }
 
     if (ringLabel) {
       ringLabel.textContent = "AI 분석 완료";
     }
 
-    if (tryOnImage) {
-      tryOnImage.src = cacheBust(previewUrl);
+    // 하단 가상 착용 결과 영역
+    if (tryOnImage && tryOnImageUrl) {
+      tryOnImage.src = cacheBust(
+        tryOnImageUrl
+      );
       tryOnImage.hidden = false;
     }
 
-    if (tryOnPlaceholder) {
+    if (
+      tryOnPlaceholder &&
+      tryOnImageUrl
+    ) {
       tryOnPlaceholder.hidden = true;
     }
   }
@@ -512,7 +561,11 @@
   }
 
   async function analyzeFromIrisPage(event) {
-    const file = fileFromInputs(["#iris-file-input", "#iris-camera-input"]);
+    const file = fileFromInputs([
+      "#iris-file-input",
+      "#iris-camera-input",
+    ]);
+
     if (!file) {
       return;
     }
@@ -530,12 +583,51 @@
     setIrisLoading(true);
 
     try {
-      const result = await postAnalyze(file, selectedLensColor);
-      applyResultToLatestUi(result, selectedLensColor);
+      // 홍채 분석에 사용한 원본 이미지를 결과 페이지용으로 저장
+      const imageDataUrl = await fileToDataUrl(file);
+
+      sessionStorage.setItem(
+        "lensiaIrisImageDataUrl",
+        imageDataUrl,
+      );
+
+      sessionStorage.setItem(
+        "lensiaIrisState",
+        JSON.stringify({
+          analyzed: false,
+          skipped: false,
+          hasImage: true,
+          fileName: file.name,
+        }),
+      );
+
+      // 실제 AI 분석 요청
+      const result = await postAnalyze(
+        file,
+        selectedLensColor,
+      );
+
+      applyResultToLatestUi(
+        result,
+        selectedLensColor,
+      );
 
       if (typeof window.showPage === "function") {
         window.showPage("result");
-        window.setTimeout(() => applyResultToLatestUi(result, selectedLensColor), 0);
+
+        window.setTimeout(() => {
+          applyResultToLatestUi(
+            result,
+            selectedLensColor,
+          );
+
+          // 결과 페이지의 원본 사진 영역 다시 초기화
+          if (
+            typeof window.initializeTryOn === "function"
+          ) {
+            window.initializeTryOn();
+          }
+        }, 0);
       }
     } catch (error) {
       showToast(`AI 분석 실패: ${error.message}`);
@@ -544,6 +636,7 @@
       setIrisLoading(false);
     }
   }
+    
 
   function previewOriginal(file) {
     if (!file) {
