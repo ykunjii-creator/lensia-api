@@ -2269,12 +2269,32 @@
   }
 }
 
-/* 919px 이하: 세로 배치 */
+/* 919px 이하: 사진 → 화살표 → 결과 세로 배치 */
 @media (max-width: 919px) {
   .result-tryon-preview-wrap {
+    position: relative;
+
+    display: grid;
     grid-template-columns: 1fr;
-    grid-template-rows: repeat(2, minmax(280px, auto));
-    gap: 20px;
+    grid-template-rows:
+      minmax(280px, auto)
+      44px
+      minmax(280px, auto);
+
+    gap: 10px;
+    align-items: stretch;
+  }
+
+  .result-tryon-preview-wrap
+    > .result-tryon-preview:first-child {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .result-tryon-preview-wrap
+    > .result-tryon-preview:last-child {
+    grid-column: 1;
+    grid-row: 3;
   }
 
   .result-tryon-preview {
@@ -2282,8 +2302,20 @@
   }
 
   .result-tryon-arrow {
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%) rotate(90deg);
+    position: relative;
+
+    left: auto;
+    right: auto;
+    top: auto;
+    bottom: auto;
+
+    grid-column: 1;
+    grid-row: 2;
+
+    align-self: center;
+    justify-self: center;
+
+    margin: 0;
+    transform: rotate(90deg);
   }
 }

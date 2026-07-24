@@ -75,22 +75,64 @@
       const targetRect =
         target.getBoundingClientRect();
 
+      /*
+      * 결과 화면의 실제 마지막 카드인
+      * 가상착용 카드 끝까지만 저장
+      */
+
+      /*
+      * 저장용 레이아웃을 자연 높이로 먼저 재계산
+      */
+      target.style.setProperty(
+        "height",
+        "auto",
+        "important",
+      );
+
+      target.style.setProperty(
+        "min-height",
+        "0",
+        "important",
+      );
+
+      target.style.setProperty(
+        "max-height",
+        "none",
+        "important",
+      );
+
+      target.style.setProperty(
+        "overflow",
+        "visible",
+        "important",
+      );
+
+      await nextFrames(2);
+
       const tryOnCard =
         target.querySelector(
           ".result-tryon-card",
         );
 
+      if (!tryOnCard) {
+        throw new Error(
+          "가상착용 카드를 찾지 못했습니다.",
+        );
+      }
+
+      const refreshedTargetRect =
+        target.getBoundingClientRect();
+
       const tryOnRect =
-        tryOnCard?.getBoundingClientRect();
+        tryOnCard.getBoundingClientRect();
 
       const height =
         Math.ceil(
-          tryOnRect
-            ? tryOnRect.bottom -
-              targetRect.top +
-              54
-            : target.scrollHeight,
+          tryOnRect.bottom -
+          refreshedTargetRect.top +
+          18,
         );
+
 
       /*
       * 원본에서 복사된 긴 높이를 실제 콘텐츠 높이로 덮어씀
@@ -110,6 +152,12 @@
       target.style.setProperty(
         "max-height",
         `${height}px`,
+        "important",
+      );
+
+      target.style.setProperty(
+        "overflow",
+        "hidden",
         "important",
       );
 
@@ -313,7 +361,66 @@
         },
       });
 
-      await downloadCanvas(canvas);
+      function cropCanvasToContent(
+        sourceCanvas,
+        cssWidth,
+        cssHeight,
+        scale,
+      ) {
+        const pixelWidth =
+          Math.min(
+            sourceCanvas.width,
+            Math.ceil(cssWidth * scale),
+          );
+
+        const pixelHeight =
+          Math.min(
+            sourceCanvas.height,
+            Math.ceil(cssHeight * scale),
+          );
+
+        const croppedCanvas =
+          document.createElement("canvas");
+
+        croppedCanvas.width =
+          pixelWidth;
+
+        croppedCanvas.height =
+          pixelHeight;
+
+        const context =
+          croppedCanvas.getContext("2d");
+
+        if (!context) {
+          return sourceCanvas;
+        }
+
+        context.drawImage(
+          sourceCanvas,
+
+          0,
+          0,
+          pixelWidth,
+          pixelHeight,
+
+          0,
+          0,
+          pixelWidth,
+          pixelHeight,
+        );
+
+        return croppedCanvas;
+      }
+
+      const croppedCanvas =
+        cropCanvasToContent(
+          canvas,
+          CONFIG.width,
+          height,
+          CONFIG.scale,
+        );
+
+      await downloadCanvas(croppedCanvas);
 
       showMessage("결과 이미지가 저장되었어요.");
     } catch (error) {
@@ -341,6 +448,10 @@
 
     const clone = original.cloneNode(true);
 
+    /*
+    * 원본 클래스는 유지하고
+    * 저장 전용 클래스만 추가
+    */
     clone.classList.add("lensia-export-mode");
 
     /*
