@@ -3,6 +3,7 @@ FROM python:3.12-slim
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y \
+    libgl1 \
     libgles2 \
     libglib2.0-0 \
     libgomp1 \
